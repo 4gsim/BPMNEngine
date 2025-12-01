@@ -37,7 +37,7 @@ namespace BPMNEngine
     public class MissingAttributeException : Exception
     {
         internal MissingAttributeException(Definition definition, XmlNode n, RequiredAttributeAttribute att)
-            : base($"The element at {Utility.FindXPath(definition, n)} is missing a value for the attribute {att.Name}") { }
+            : base($"The element at {definition.FindXPath(n)} is missing a value for the attribute {att.Name}") { }
 
     }
 
@@ -47,7 +47,7 @@ namespace BPMNEngine
     public class InvalidAttributeValueException : Exception
     {
         internal InvalidAttributeValueException(Definition definition, XmlNode n, AttributeRegexAttribute ar)
-            : base($"The element at {Utility.FindXPath(definition, n)} has an invalid value for the attribute {ar.Name}, expected {ar.Reg}") { }
+            : base($"The element at {definition.FindXPath(n)} has an invalid value for the attribute {ar.Name}, expected {ar.Reg}") { }
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ namespace BPMNEngine
     public class InvalidElementException : Exception
     {
         internal InvalidElementException(Definition definition, XmlNode n, IEnumerable<string> err)
-            : base($"The element at {Utility.FindXPath(definition, n)} has the following error(s):\n{String.Join("\n\t", err.Distinct())}") { }
+            : base($"The element at {definition.FindXPath(n)} has the following error(s):\n{String.Join("\n\t", err.Distinct())}") { }
     }
 
     /// <summary>

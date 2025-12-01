@@ -98,36 +98,6 @@ namespace BPMNEngine
         internal static IElement ConstructElementType(XmlElement element, ref XmlPrefixMap map, ref ElementTypeCache cache, AElement parent)
             => cache.IsCached(element.Name) ? (IElement)xmlConstructors[cache[element.Name]].Invoke([element, map, parent]) : null;
 
-        public static string FindXPath(Definition definition, XmlNode node)
-        {
-            var builder = new StringBuilder();
-            while (node != null)
-            {
-                switch (node.NodeType)
-                {
-                    case XmlNodeType.Attribute:
-                        builder.Insert(0, "/@" + node.Name);
-                        node = ((XmlAttribute)node).OwnerElement;
-                        break;
-                    case XmlNodeType.Element:
-                        if (node.Attributes["id"] == null)
-                        {
-                            int index = FindElementIndex(definition, (XmlElement)node);
-                            builder.Insert(0, "/" + node.Name + "[" + index + "]");
-                        }
-                        else
-                            builder.Insert(0, string.Format("/{0}[@id='{1}']", node.Name, node.Attributes["id"].Value));
-                        node = node.ParentNode;
-                        break;
-                    case XmlNodeType.Document:
-                        return builder.ToString();
-                    default:
-                        throw (definition == null ? new ArgumentException("Only elements and attributes are supported") : definition.Exception(null, new ArgumentException("Only elements and attributes are supported")));
-                }
-            }
-            throw (definition==null ? new ArgumentException("Node was not in a document") : definition.Exception(null, new ArgumentException("Node was not in a document")));
-        }
-
         public static int FindElementIndex(Definition definition, XmlElement element)
         {
             definition?.LogLine(LogLevel.Debug, null, $"Locating Element Index for element {element.Name}");

@@ -16,7 +16,7 @@
         /// }
         /// </code>
         /// </summary>
-        public OnElementEvent Started { get; init; }
+        public OnProcessEvent Started { get; init; }
         /// <summary>
         /// This delegate is called when a particular element completes
         /// <code>
@@ -28,7 +28,7 @@
         /// }
         /// </code>
         /// </summary>
-        public OnElementEvent Completed { get; init; }
+        public OnProcessEvent Completed { get; init; }
         /// <summary>
         /// This delegate is called when a particular element has an error
         /// <code>

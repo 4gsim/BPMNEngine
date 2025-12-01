@@ -21,6 +21,7 @@ namespace BPMNEngine
 
         private readonly ReaderWriterLockSlim locker = new();
         private readonly List<SPrefixMappingPair> mappings = [];
+        private readonly Dictionary<(string, string), bool> cachedMatches = new();
 
         public bool Load(XmlElement element)
         {
@@ -71,9 +72,14 @@ namespace BPMNEngine
 
         internal bool IsMatch(string prefix, string tag, string nodeName)
         {
+            var match = $"{prefix}:{tag}";
+            if (cachedMatches.TryGetValue((match, nodeName), out var cachedMatch))
+                return cachedMatch;
             process.WriteLogLine((string)null, LogLevel.Debug, new System.Diagnostics.StackFrame(1, true), DateTime.Now, $"Checking if prefix {nodeName} matches {prefix}:{tag}");
-            return string.Equals($"{prefix}:{tag}", nodeName, StringComparison.InvariantCultureIgnoreCase)
+            var result = string.Equals(match, nodeName, StringComparison.InvariantCultureIgnoreCase)
                 ||Translate(prefix).Any(t => string.Equals($"{prefix}:{t}", nodeName, StringComparison.InvariantCultureIgnoreCase));
+            cachedMatches[(match, nodeName)] = result;
+            return result;
         }
     }
 }

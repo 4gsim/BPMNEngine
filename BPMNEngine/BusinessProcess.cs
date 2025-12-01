@@ -24,6 +24,7 @@ namespace BPMNEngine
         private readonly List<object> components;
         private readonly IEnumerable<AHandlingEvent> eventHandlers = null;
         private readonly Definition definition;
+        private readonly Dictionary<string, IEnumerable<Exception>> cachedValidations = new();
 
         internal IElement GetElement(string id) => Elements.FirstOrDefault(elem => elem.ID==id);
         private IEnumerable<IElement> Elements
@@ -190,6 +191,8 @@ namespace BPMNEngine
 
         private IEnumerable<Exception> ValidateElement(AElement elem)
         {
+            if (cachedValidations.TryGetValue(elem.ID, out var validations))
+                return validations;
             WriteLogLine(elem, LogLevel.Debug, new StackFrame(1, true), DateTime.Now, $"Validating element {elem.ID}");
             IEnumerable<Exception> result = [];
             result = result.Concat(
@@ -212,7 +215,8 @@ namespace BPMNEngine
                     .Select(e => ValidateElement(e))
                     .SelectMany(res => res)
                 );
-            return result;
+            cachedValidations[elem.ID] = result;
+            return cachedValidations[elem.ID];
         }
 
         private ProcessInstance ProduceInstance(ProcessEvents events,

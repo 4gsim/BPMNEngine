@@ -34,7 +34,7 @@ namespace BPMNEngine.Elements
             {
                 var ret = _cachedID??this["id"];
                 if (ret==null)
-                    _cachedID = Utility.FindXPath(OwningDefinition, Element);
+                    _cachedID = OwningDefinition.FindXPath(Element);
                 return ret??_cachedID;
             }
         }
