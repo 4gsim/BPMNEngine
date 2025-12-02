@@ -44,7 +44,6 @@ namespace BPMNEngine.Elements
         public string FindXPath(XmlNode node)
         {
             var builder = new StringBuilder();
-            XmlNode nodeToCache = null;
             while (node != null)
             {
                 switch (node.NodeType)
@@ -66,14 +65,14 @@ namespace BPMNEngine.Elements
                             if (cachedXPaths.TryGetValue((node.Name, node.Attributes["id"].Value), out var cachedXPath))
                                 return builder.Insert(0, cachedXPath).ToString();
                             else
-                                nodeToCache = node;
+                            {
+                                var parentWithIdXPath = FindXPath(node);
+                                cachedXPaths[(node.Name, node.Attributes["id"].Value)] = parentWithIdXPath;
+                                return builder.Insert(0, parentWithIdXPath).ToString();
+                            }
                         break;
                     case XmlNodeType.Document:
-                        var path = builder.ToString();
-                        if (nodeToCache != null)
-                            cachedXPaths[(nodeToCache.Name, nodeToCache.Attributes["id"].Value)] =
-                                path[..(path.LastIndexOf('/') is var i && i >= 0 ? i : path.Length)]; 
-                        return path;
+                        return builder.ToString();
                     default:
                         throw Exception(null, new ArgumentException("Only elements and attributes are supported"));
                 }

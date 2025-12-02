@@ -1,5 +1,6 @@
 ﻿using BPMNEngine.Interfaces.Elements;
 using System.Collections.Immutable;
+using BPMNEngine.Elements.Processes;
 
 namespace BPMNEngine.Elements
 {
@@ -18,7 +19,7 @@ namespace BPMNEngine.Elements
                 IElement subElem = Utility.ConstructElementType(xelem, ref map, ref cache, this);
                 if (subElem != null)
                 {
-                    if (subElem is AParentElement element)
+                    if (subElem is not ExtensionElements && subElem is AParentElement element)
                         element.LoadChildren(ref map, ref cache);
                     else
                         ((AElement)subElem).LoadExtensionElement(ref map, ref cache);
