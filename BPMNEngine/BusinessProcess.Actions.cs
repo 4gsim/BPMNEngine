@@ -369,6 +369,17 @@ namespace BPMNEngine
                 element, GetElement(sourceID),
                 variables
             );
+            if (element is AFlowNode flowNode)
+            {
+                GetEventHandlers(EventSubTypes.Timer, null, flowNode, variables).ForEach(ahe =>
+                {
+                    if (instance.State.Path.GetStatus(ahe.ID)==StepStatuses.WaitingStart)
+                    {
+                        StepScheduler.Instance.AbortDelayedEvent(instance, (BoundaryEvent)ahe, sourceID);
+                        AbortStep(instance, sourceID, ahe, variables);
+                    }
+                });
+            }
             if (element is SubProcess process)
             {
                 process.Children.ForEach(child =>
