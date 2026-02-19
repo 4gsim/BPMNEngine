@@ -131,15 +131,22 @@ namespace BPMNEngine
                     });
                     if (!abort)
                     {
-                        GetEventHandlers(EventSubTypes.Timer, null, node, ropvc).ForEach(ahe =>
+                        try
                         {
-                            TimeSpan? ts = ahe.GetTimeout(ropvc);
-                            if (ts.HasValue)
+                            GetEventHandlers(EventSubTypes.Timer, null, node, ropvc).ForEach(ahe =>
                             {
-                                instance.State.Path.DelayEventStart(ahe, elem.ID, ts.Value);
-                                StepScheduler.Instance.DelayStart(ts.Value, instance, (BoundaryEvent)ahe, elem.ID);
-                            }
-                        });
+                                TimeSpan? ts = ahe.GetTimeout(ropvc);
+                                if (ts.HasValue)
+                                {
+                                    instance.State.Path.DelayEventStart(ahe, elem.ID, ts.Value);
+                                    StepScheduler.Instance.DelayStart(ts.Value, instance, (BoundaryEvent)ahe, elem.ID);
+                                }
+                            });
+                        }
+                        catch (Exception e)
+                        {
+                            instance.WriteLogLine(sourceID, LogLevel.Debug, new StackFrame(1, true), DateTime.Now, $"###exception {e.Message}");
+                        }
                     }
                 }
                 if (elem is IFlowElement flowElement)
