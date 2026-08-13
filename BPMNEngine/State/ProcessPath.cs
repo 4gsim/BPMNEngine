@@ -316,6 +316,29 @@ namespace BPMNEngine.State
             triggerChange();
         }
 
+        // Atomically transitions Waiting/Started → Succeeded; returns false if already past that state.
+        private bool TryAddSucceededEntry(string elementID, IEnumerable<string> outgoingID, DateTime? end, string completedBy, out DateTime start, out string incoming)
+        {
+            start = DateTime.Now;
+            incoming = null;
+            stateLock.EnterWriteLock();
+            try
+            {
+                var last = steps.LastOrDefault(step => step.ElementID == elementID);
+                if (last == null || (last.Status != StepStatuses.Waiting && last.Status != StepStatuses.Started))
+                    return false;
+                start = last.StartTime;
+                incoming = last.IncomingID;
+                steps.Add(new StateStep(elementID, StepStatuses.Succeeded, start, incoming, end, completedBy, outgoingID?.ToImmutableArray()));
+            }
+            finally
+            {
+                stateLock.ExitWriteLock();
+            }
+            triggerChange();
+            return true;
+        }
+
         private void GetIncomingIDAndStart(string elementID, out DateTime start, out string incoming)
         {
             start = DateTime.Now;
@@ -348,32 +371,28 @@ namespace BPMNEngine.State
             AddPathEntry(node.ID, (node is UserTask || node is ManualTask ? StepStatuses.Waiting : StepStatuses.Started), DateTime.Now, incomingID: incoming);
         }
 
-        internal void SucceedFlowNode(ATask task, IEnumerable<string> outgoing = null, string completedByID = null)
+        internal bool SucceedFlowNode(ATask task, IEnumerable<string> outgoing = null, string completedByID = null)
             => SucceedFlowNode((AFlowNode)task, outgoing: outgoing??task.Outgoing, completedByID: completedByID);
 
-        internal void SucceedFlowNode(AEvent evnt, IEnumerable<string> outgoing = null, string completedByID = null)
+        internal bool SucceedFlowNode(AEvent evnt, IEnumerable<string> outgoing = null, string completedByID = null)
         {
             if (evnt is BoundaryEvent @event)
-                SucceedFlowNode((AFlowNode)evnt, outgoing: outgoing??@event.Outgoing, completedByID: completedByID);
+                return SucceedFlowNode((AFlowNode)evnt, outgoing: outgoing??@event.Outgoing, completedByID: completedByID);
             else
-                SucceedFlowNode((AFlowNode)evnt, outgoing: outgoing??evnt.Outgoing, completedByID: completedByID);
+                return SucceedFlowNode((AFlowNode)evnt, outgoing: outgoing??evnt.Outgoing, completedByID: completedByID);
         }
 
-        internal void SucceedFlowNode(AFlowNode node, IEnumerable<string> outgoing = null, string completedByID = null)
+        internal bool SucceedFlowNode(AFlowNode node, IEnumerable<string> outgoing = null, string completedByID = null)
         {
-            WriteLogLine(node.ID, LogLevel.Debug, string.Format("Succeeding {0} in Process Path {1}", node.GetType().Name, (completedByID==null ? "" : string.Format(" as completed by {0}", completedByID))));
-            GetIncomingIDAndStart(node.ID, out DateTime start, out string incoming);
             outgoing ??= node.Outgoing;
+            if (!TryAddSucceededEntry(node.ID, outgoing.Any() ? node.Outgoing : null, DateTime.Now, completedByID, out _, out _))
+                return false;
+            WriteLogLine(node.ID, LogLevel.Debug, string.Format("Succeeding {0} in Process Path {1}", node.GetType().Name, (completedByID==null ? "" : string.Format(" as completed by {0}", completedByID))));
             if (!outgoing.Any())
-            {
-                AddPathEntry(node.ID, StepStatuses.Succeeded, start, incomingID: incoming, end: DateTime.Now, completedBy: completedByID);
                 Complete(node.ID, null);
-            }
             else
-            {
-                AddPathEntry(node.ID, StepStatuses.Succeeded, start, incomingID: incoming, end: DateTime.Now, outgoingID: node.Outgoing, completedBy: completedByID);
                 outgoing.Distinct().ForEach(id => Complete(node.ID, id));
-            }
+            return true;
         }
 
         internal void FailFlowNode(AFlowNode node, Exception error = null)

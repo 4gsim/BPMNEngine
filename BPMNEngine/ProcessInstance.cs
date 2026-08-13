@@ -132,8 +132,8 @@ namespace BPMNEngine
 
         internal void CompleteTimedEvent(AEvent evnt)
         {
-            State.Path.SucceedFlowNode(evnt);
-            InvokeElementEventDelegate(Delegates.Events.Events.Completed, evnt, new ReadOnlyProcessVariablesContainer(evnt.ID, this));
+            if (State.Path.SucceedFlowNode(evnt))
+                InvokeElementEventDelegate(Delegates.Events.Events.Completed, evnt, new ReadOnlyProcessVariablesContainer(evnt.ID, this));
         }
 
         internal void StartTimedEvent(BoundaryEvent evnt, string sourceID)
@@ -164,12 +164,12 @@ namespace BPMNEngine
                 WriteLogLine(task, LogLevel.Debug, new StackFrame(1, true), DateTime.Now, $"Merging variables from Task[{task.ID}] complete by {(task is IUserTask task1 ? task1.UserID : null)} into the state");
                 IVariables vars = task.Variables;
                 State.MergeVariables(task, vars);
-                InvokeElementEventDelegate(Delegates.Events.Tasks.Completed, task, new ReadOnlyProcessVariablesContainer(task.ID, this));
                 ATask tsk = Process.GetTask(task.ID);
-                if (tsk is UserTask task2)
-                    State.Path.SucceedFlowNode(task2, completedByID: ((IUserTask)task).UserID);
-                else
-                    State.Path.SucceedFlowNode(tsk);
+                bool succeeded = tsk is UserTask task2
+                    ? State.Path.SucceedFlowNode(task2, completedByID: ((IUserTask)task).UserID)
+                    : State.Path.SucceedFlowNode(tsk);
+                if (succeeded)
+                    InvokeElementEventDelegate(Delegates.Events.Tasks.Completed, task, new ReadOnlyProcessVariablesContainer(task.ID, this));
             }
         }
 
