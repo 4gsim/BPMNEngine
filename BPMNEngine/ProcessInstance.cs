@@ -139,20 +139,33 @@ namespace BPMNEngine
         internal void StartTimedEvent(BoundaryEvent evnt, string sourceID)
             => Process.ProcessEvent(this, sourceID, evnt);
 
+        private void MergeEmissionVariables(Tasks.ExternalTask externalTask)
+            => State.MergeVariables(externalTask, externalTask.Variables);
+
         internal void EmitTaskError(Tasks.ExternalTask externalTask, Exception error, out bool isAborted)
         {
+            MergeEmissionVariables(externalTask);
             InvokeElementEventDelegate(Delegates.Events.Tasks.Error, externalTask, new ReadOnlyProcessVariablesContainer(externalTask.ID, this));
             Process.HandleTaskEmission(this, externalTask, error, EventSubTypes.Error, out isAborted);
         }
 
         internal void EmitTaskMessage(Tasks.ExternalTask externalTask, string message, out bool isAborted)
-            => Process.HandleTaskEmission(this, externalTask, message, Elements.Processes.Events.EventSubTypes.Message, out isAborted);
+        {
+            MergeEmissionVariables(externalTask);
+            Process.HandleTaskEmission(this, externalTask, message, Elements.Processes.Events.EventSubTypes.Message, out isAborted);
+        }
 
         internal void EscalateTask(Tasks.ExternalTask externalTask, out bool isAborted)
-            => Process.HandleTaskEmission(this, externalTask, null, Elements.Processes.Events.EventSubTypes.Escalation, out isAborted);
+        {
+            MergeEmissionVariables(externalTask);
+            Process.HandleTaskEmission(this, externalTask, null, Elements.Processes.Events.EventSubTypes.Escalation, out isAborted);
+        }
 
         internal void EmitTaskSignal(Tasks.ExternalTask externalTask, string signal, out bool isAborted)
-            => Process.HandleTaskEmission(this, externalTask, signal, Elements.Processes.Events.EventSubTypes.Signal, out isAborted);
+        {
+            MergeEmissionVariables(externalTask);
+            Process.HandleTaskEmission(this, externalTask, signal, Elements.Processes.Events.EventSubTypes.Signal, out isAborted);
+        }
 
         internal void CompleteTask(Tasks.ManualTask manualTask)
             => MergeVariables(manualTask);
